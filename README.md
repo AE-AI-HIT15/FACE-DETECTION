@@ -18,11 +18,6 @@ Hệ thống hỗ trợ ba chế độ phát hiện khuôn mặt chính:
 ### 🔹 Yêu cầu hệ thống
 - Python 3.8+
 - pip
-- FastAPI
-- Requests
-- OpenCV
-- Streamlit
-- Time
 
 ### 🔹 Sao chép kho lưu trữ
 ```bash
@@ -37,6 +32,7 @@ cd FACE-DETECTION
 │   ├── __init__.py
 │   ├── app.py          # Ứng dụng Streamlit
 │   ├── main.py         # Máy chủ API FastAPI
+│   ├── requirements.txt # Chứa các thư viện cần thiết
 │   ├── 📂 routers      # Router API
 │   │   ├── __init__.py
 │   │   ├── face_detect.py
@@ -58,6 +54,22 @@ cd FACE-DETECTION
 ```
 
 ## 5️⃣ Hướng dẫn Chạy Hệ thống
+### 🔹 Cài đặt môi trường ảo và các thư viện cần thiết
+```bash
+# Tạo môi trường ảo
+python -m venv venv
+
+# Kích hoạt môi trường ảo
+# Trên Windows
+venv\Scripts\activate
+# Trên macOS/Linux
+source venv/bin/activate
+
+# Cài đặt các thư viện cần thiết
+pip install -r requirements.txt
+```
+
+
 ### 🔹 Chạy Backend FastAPI
 ```bash
 cd app
