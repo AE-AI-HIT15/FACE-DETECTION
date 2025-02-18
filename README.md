@@ -1,1 +1,73 @@
-# FACE-DETECTION
+# 📌 FACE-DETECTION
+
+## 1️⃣ Giới thiệu
+Dự án **FACE DETECTION** giúp phát hiện khuôn mặt trong **thời gian thực** từ webcam hoặc từ ảnh, video được tải lên.
+
+## 2️⃣ Chức năng
+Hệ thống hỗ trợ ba chế độ phát hiện khuôn mặt chính:
+- 📷 **Phát hiện qua Webcam**
+- 🖼 **Phát hiện qua Ảnh**
+- 🎥 **Phát hiện qua Video**
+
+## 3️⃣ Tổng quan Hệ thống
+- 🏗 **Mô hình**: YOLOv8n Face
+- ⚙ **Backend**: FastAPI
+- 💻 **Frontend**: Streamlit
+
+## 4️⃣ Hướng dẫn Cài đặt
+### 🔹 Yêu cầu hệ thống
+- Python 3.8+
+- pip
+- FastAPI
+- Requests
+- OpenCV
+- Streamlit
+- Time
+
+### 🔹 Sao chép kho lưu trữ
+```bash
+git clone https://github.com/AE-AI-HIT15/FACE-DETECTION.git
+cd FACE-DETECTION
+```
+
+### 🔹 Cấu trúc thư mục
+```
+📂 FACE-DETECTION
+├── 📂 app               # Thư mục chính
+│   ├── __init__.py
+│   ├── app.py          # Ứng dụng Streamlit
+│   ├── main.py         # Máy chủ API FastAPI
+│   ├── 📂 routers      # Router API
+│   │   ├── __init__.py
+│   │   ├── face_detect.py
+│   │   ├── upload.py   # Xử lý tải lên
+│   ├── 📂 domain       # Xử lý logic ứng dụng
+│   │   ├── __init__.py
+│   │   ├── face_detector.py
+│   ├── 📂 schemas      # Định nghĩa mô hình dữ liệu
+│   │   ├── __init__.py
+│   │   ├── base_model.py
+│   ├── 📂 utils        # Tiện ích & cấu hình
+│   │   ├── __init__.py
+│   │   ├── configs.py
+│   ├── 📂 api          # Xử lý middleware & logging
+│   │   ├── __init__.py
+│   │   ├── exception_handler.py
+│   │   ├── logger.py
+│   │   ├── middleware.py
+```
+
+## 5️⃣ Hướng dẫn Chạy Hệ thống
+### 🔹 Chạy Backend FastAPI
+```bash
+cd app
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+### 🔹 Chạy Frontend Streamlit
+```bash
+cd app
+streamlit run app.py
+```
+
+Sau khi khởi động, hệ thống sẽ tự động mở trình duyệt với giao diện phát hiện khuôn mặt. Người dùng có thể sử dụng các tính năng phát hiện trực tiếp qua webcam, ảnh hoặc video.
