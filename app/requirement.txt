@@ -1,0 +1,7 @@
+cv2
+time
+YOLO
+streamlit
+fastapi
+request
+torch
