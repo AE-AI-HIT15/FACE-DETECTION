@@ -5,3 +5,5 @@ streamlit
 fastapi
 request
 torch
+numpy
+List
