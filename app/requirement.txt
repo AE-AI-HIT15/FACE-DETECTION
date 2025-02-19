@@ -1,6 +1,6 @@
 cv2
 time
-YOLO
+ultralytics
 streamlit
 fastapi
 request
