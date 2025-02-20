@@ -2,86 +2,78 @@ import time
 import cv2
 import sys
 import os
-
+from typing import List, Union
+# import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils.configs import model
+from utils.configs import model, CONFIDENCE_THRESHOLD
 
-# Kiểm tra đầu vào là video hay ảnh
-def is_webcam(source):
-    """Kiểm tra xem đầu vào có phải là webcam realtime hay không"""
-    return source == 0
+def frame_process(input: Union[str, int], confident: float = CONFIDENCE_THRESHOLD, source: str = "webcam") -> List[List[int]]:
+    """
+        Hàm xử lí nhận diện khuôn mặt trong từng khung hình
 
-def is_video(source):
-    """Kiểm tra xem đầu vào có phải là video hay không"""
-    return isinstance(source, str) and source.lower().endswith(('.mp4', '.avi', '.mov'))
+        Tham số:
+        - input: Đường dẫn ảnh, video, chỉ số webcam hoặc mảng NumPy chứa frame.
+        - confident: Ngưỡng độ tin cậy để nhận diện khuôn mặt.
+        - source: Loại dữ liệu đầu vào ('image', 'video', 'webcam').
 
-def is_image(source):
-    """Kiểm tra xem đầu vào có phải là ảnh hay không"""
-    return isinstance(source, str) and source.lower().endswith(('.png', '.jpg', '.jpeg'))
-
-def process_video(yolo_model, source) -> list[list[int]]:
-    """Xử lý video để nhận diện khuôn mặt"""
-    cap = cv2.VideoCapture(source)
-
-    if not cap.isOpened():
-        print("Không thể mở video!")
-        exit()
-
-    while True:
-        start_time = time.time()  # Bắt đầu tính thời gian
-        
-        ret, frame = cap.read()
-        if not ret:
-            break  # Dừng nếu hết video
-
-        # Phát hiện khuôn mặt bằng YOLO
-        results = yolo_model.predict(frame)
-
-    #     # Vẽ bounding box
-    #     for result in results:
-    #         for box in result.boxes.xyxy:
-    #             x1, y1, x2, y2 = map(int, box[:4])
-    #             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
-    #     # Tính FPS
-    #     fps = 1 / (time.time() - start_time)
-    #     fps_text = f"FPS: {fps:.2f}"
-
-    #     flip_frame = cv2.flip(frame, 1)
-        
-    #     # Hiển thị FPS trên video
-    #     cv2.putText(flip_frame, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-
-    #     # Hiển thị video
-    #     cv2.imshow("YOLO Face Detection", flip_frame)
-
-    #     # Nhấn 'q' để thoát
-    #     if cv2.waitKey(1) & 0xFF == ord('q'):
-    #         break
-
-    # cap.release()
-
-"""def main(source):
-    # Tải mô hình YOLO
+        Trả về vị trí của khung khuôn mặt, confident score
+    """
     yolo_model = model()
+    res = []
+    
+    if source == "image":
+        if isinstance(input, str):
+            frame = cv2.imread(input)
+        else:
+            frame = input
+        predict_frame = yolo_model.predict(frame, conf=confident, stream=True)
+        for result in predict_frame:
+            for box in result.boxes.xyxy:
+                x1, y1, x2, y2 = map(int, box[:4])
+                res.append([x1, y1, x2, y2])
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-    if is_video(source):
-        # Nếu là video, gọi hàm xử lý video
-        process_video(yolo_model, source)
-    elif is_webcam(source):
-        process_video(yolo_model, source)
-    elif is_image(source):
-        # Nếu là ảnh, gọi hàm xử lý ảnh
-        process_image(yolo_model, source)
-    else:
-        print("Đầu vào không hợp lệ. Vui lòng cung cấp một file ảnh hoặc video!")
+         # Hiển thị ảnh sau khi nhận diện khuôn mặt
+        cv2.imshow("Detected Faces", frame)
+        cv2.waitKey(0)  # Chờ nhấn phím bất kỳ để đóng cửa sổ
+        cv2.destroyAllWindows()        
+        return res, confident
+    
+    elif source in ["video", "webcam"]:
+        cap = cv2.VideoCapture(input)  # Webcam: 0, Video: đường dẫn file
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            predict_frame = yolo_model.predict(frame, conf=confident, stream=True)  # Fix lỗi CONF
+            frame_res = []
+            for result in predict_frame:
+                for box in result.boxes.xyxy:
+                    x1, y1, x2, y2 = map(int, box[:4])
+                    frame_res.append([x1, y1, x2, y2])
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-    # Giải phóng tài nguyên
-    cv2.destroyAllWindows()"""
+            cv2.imshow("Webcam Face Detection", frame)  # Hiển thị video
+            print(f"Faces detected: {frame_res}")
 
-"""if __name__ == "__main__":
-    # Đặt đường dẫn đến video hoặc ảnh ở đây
-    source = '' 
-    # Thay đổi thành đường dẫn file video hoặc ảnh hoặc webcam (file path hoặc 0 - dành cho webcam) của bạn
-    main(source)
-"""
+            if cv2.waitKey(1) & 0xFF == ord('q'):  # Nhấn 'q' để thoát
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()
+    
+    return res, confident
+
+
+if __name__ == '__main__':
+    """
+    Đưa đường đẫn của ảnh, video, webcam vào file_path.
+    1. Nếu sử dụng ảnh thì ở tham số source truyền vào "image"
+    2. Nếu sử dụng video hoặc webcam thì ở tham số source truyền vào "video", "webcam" tương ứng
+    3. Nếu sử dụng webcam thì file_path = 0
+    4. Tham số confident dùng để tùy chỉnh ngưỡng tin cậy khi nhân diện khuân măt của mô hình
+    """
+    file_path = "/"
+    # frame = cv2.imread(file_path)
+    print(frame_process(file_path, confident= 0.1 , source= "image"))
+    # frame_process(0, 0.5, source="webcam")
