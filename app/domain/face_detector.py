@@ -2,78 +2,86 @@ import time
 import cv2
 import sys
 import os
-from typing import List, Union
-# import numpy as np
+from typing import List, Tuple, Union, Generator
+import numpy as np
+import logging
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils.configs import model, CONFIDENCE_THRESHOLD
+from utils.configs import create_model, CONFIDENCE_THRESHOLD, FRAME_SKIP, DEVICE, STREAM, IMAGE_SIZE
 
-def frame_process(input: Union[str, int], confident: float = CONFIDENCE_THRESHOLD, source: str = "webcam") -> List[List[int]]:
+try:
+    model = create_model()
+except Exception as e:
+    logging.error(e)
+
+def image_process(input: np.ndarray, confident: float = CONFIDENCE_THRESHOLD, stream=STREAM, device=DEVICE, imgsz = IMAGE_SIZE) -> Tuple[List[List[int]], List[float]]:
+
     """
-        Hàm xử lí nhận diện khuôn mặt trong từng khung hình
+    Process an image and return bounding boxes with confidence scores.
 
-        Tham số:
-        - input: Đường dẫn ảnh, video, chỉ số webcam hoặc mảng NumPy chứa frame.
-        - confident: Ngưỡng độ tin cậy để nhận diện khuôn mặt.
-        - source: Loại dữ liệu đầu vào ('image', 'video', 'webcam').
-
-        Trả về vị trí của khung khuôn mặt, confident score
+    :param input: Input image (NumPy array)
+    :param confident: Confidence threshold for detection
+    :return: List of bounding boxes and their confidence scores
     """
-    yolo_model = model()
-    res = []
-    
-    if source == "image":
-        if isinstance(input, str):
-            frame = cv2.imread(input)
-        else:
-            frame = input
-        predict_frame = yolo_model.predict(frame, conf=confident, stream=True)
-        for result in predict_frame:
-            for box in result.boxes.xyxy:
-                x1, y1, x2, y2 = map(int, box[:4])
-                res.append([x1, y1, x2, y2])
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+    # predict result from yolov8-face
+    predict = model.predict(input, conf=confident, stream=STREAM, device=DEVICE, imgsz=IMAGE_SIZE)
+    #  List store face after detect
+    res = []    
+    conf_scores = []  # List store confidence score of face
 
-         # Hiển thị ảnh sau khi nhận diện khuôn mặt
-        cv2.imshow("Detected Faces", frame)
-        cv2.waitKey(0)  # Chờ nhấn phím bất kỳ để đóng cửa sổ
-        cv2.destroyAllWindows()        
-        return res, confident
-    
-    elif source in ["video", "webcam"]:
-        cap = cv2.VideoCapture(input)  # Webcam: 0, Video: đường dẫn file
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            predict_frame = yolo_model.predict(frame, conf=confident, stream=True)  # Fix lỗi CONF
-            frame_res = []
-            for result in predict_frame:
-                for box in result.boxes.xyxy:
-                    x1, y1, x2, y2 = map(int, box[:4])
-                    frame_res.append([x1, y1, x2, y2])
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+    for result in predict:
+        for box, conf in zip(result.boxes.xyxy, result.boxes.conf):  # Take bbox and confidence scores
+            x1, y1, x2, y2 = map(int, box[:4])
+            res.append([x1, y1, x2, y2])
+            conf_scores.append(float(conf)) 
 
-            cv2.imshow("Webcam Face Detection", frame)  # Hiển thị video
-            print(f"Faces detected: {frame_res}")
+    return res, conf_scores  # Return list of face and confidence scores
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):  # Nhấn 'q' để thoát
-                break
-
-        cap.release()
-        cv2.destroyAllWindows()
-    
-    return res, confident
-
-
-if __name__ == '__main__':
+def video_process(input: str) -> Generator[bytes, None, None]:
     """
-    Đưa đường đẫn của ảnh, video, webcam vào file_path.
-    1. Nếu sử dụng ảnh thì ở tham số source truyền vào "image"
-    2. Nếu sử dụng video hoặc webcam thì ở tham số source truyền vào "video", "webcam" tương ứng
-    3. Nếu sử dụng webcam thì file_path = 0
-    4. Tham số confident dùng để tùy chỉnh ngưỡng tin cậy khi nhân diện khuân măt của mô hình
+    Processes a video stream from a file path or webcam and generates a sequence of JPEG-encoded frames.
+
+    :param input: Video source, either a file path (str) or "0" (str) for the webcam.
+    :return: A generator yielding JPEG-encoded video frames as bytes.
     """
-    file_path = "/"
-    # frame = cv2.imread(file_path)
-    print(frame_process(file_path, confident= 0.1 , source= "image"))
-    # frame_process(0, 0.5, source="webcam")
+
+    frame_count = 0
+    cap = cv2.VideoCapture(int(input)) if input == "0" else cv2.VideoCapture(input)
+    fps_time = time.time()
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        frame_count += 1
+        fps = 1 / (time.time() - fps_time)
+        fps_time = time.time()
+
+        if frame_count % FRAME_SKIP != 0:
+            continue
+
+        # Process the frame (bounding boxes and confidence scores)
+        bboxes, confs = image_process(frame, confident=CONFIDENCE_THRESHOLD, stream=STREAM, device=DEVICE, imgsz=IMAGE_SIZE )
+
+        for (bbox, conf) in zip(bboxes, confs):
+            x1, y1, x2, y2 = bbox
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(frame, f"{conf:.2f}", (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        cv2.putText(frame, f"FPS: {fps:.2f}", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+
+        cv2.waitKey(33)
+
+        # Encode frame as JPEG
+        _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        frame_bytes = jpeg.tobytes()
+
+        # Yield the frame as an HTTP MJPEG response
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+    cap.release()
+
