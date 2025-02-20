@@ -69,6 +69,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### 🔹 Tải mô hình
+- Truy cập đường link:(https://github.com/akanametov/yolo-face/releases/download/v0.0.0/yolov8n-face.pt) để tải mô hình
 
 ### 🔹 Chạy Backend FastAPI
 ```bash
@@ -79,7 +81,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 ### 🔹 Chạy Frontend Streamlit
 ```bash
 cd app
-streamlit run app.py
+streamlit run app_streamlit.py
 ```
 
 Sau khi khởi động, hệ thống sẽ tự động mở trình duyệt với giao diện phát hiện khuôn mặt. Người dùng có thể sử dụng các tính năng phát hiện trực tiếp qua webcam, ảnh hoặc video.
