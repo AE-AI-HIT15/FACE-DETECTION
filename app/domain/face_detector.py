@@ -47,7 +47,7 @@ def video_process(input: str) -> Generator[bytes, None, None]:
 
     frame_count = 0
     cap = cv2.VideoCapture(int(input)) if input == "0" else cv2.VideoCapture(input)
-    fps_time = time.time()
+    # fps_time = time.time()
 
     while cap.isOpened():
         start_time = time.time() # Store the time before processing
@@ -70,7 +70,7 @@ def video_process(input: str) -> Generator[bytes, None, None]:
             cv2.putText(frame, f"{conf:.2f}", (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        fps = 1 / (time.time() - fps_time) # Computing FPS based on the actual frame processing time
+        fps = 1 / (time.time() - start_time) # Computing FPS based on the actual frame processing time
 
         cv2.putText(frame, f"FPS: {fps:.2f}", (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
